@@ -1,0 +1,79 @@
+python -m idlelib.idle
+
+Python 2.7.1 (r271:86832, Jun 16 2011, 16:59:05) 
+[GCC 4.2.1 (Based on Apple Inc. build 5658) (LLVM build 2335.15.00)] on darwin
+Type "copyright", "credits" or "license()" for more information.
+>>> ser = serial.Serial('/dev/cu.SLAB_USBtoUART', 19200, timeout=1, parity=serial.PARITY_ODD,dsrdtr=True)
+
+
+Traceback (most recent call last):
+  File "<pyshell#0>", line 1, in <module>
+    ser = serial.Serial('/dev/cu.SLAB_USBtoUART', 19200, timeout=1, parity=serial.PARITY_ODD,dsrdtr=True)
+NameError: name 'serial' is not defined
+>>> import serial
+>>> ser = serial.Serial('/dev/cu.SLAB_USBtoUART', 19200, timeout=1, parity=serial.PARITY_ODD,dsrdtr=True)
+
+>>> ser.getSettingsDict()
+{'parity': 'O', 'baudrate': 19200, 'bytesize': 8, 'xonxoff': False, 'interCharTimeout': None, 'rtscts': False, 'timeout': 1, 'stopbits': 1, 'dsrdtr': True, 'writeTimeout': None}
+>>> ser.setDTR()
+>>> ser.read()
+''
+>>> ser.write('}§€€€€€€')
+23
+>>> ser.inWaiting()
+
+0
+>>> ser.read()
+''
+>>>  ser.write('}¢€€€€€€')
+ 
+  File "<pyshell#9>", line 1
+    ser.write('}¢€€€€€€')
+   ^
+IndentationError: unexpected indent
+>>> ser.write('}¢€€€€€€')
+23
+>>> ser.write('} €€€€€€')
+22
+>>> ser.write('}°€€€€€€')
+23
+>>> ser.write('}¨€€€€€€')
+23
+>>> ser.write('}ª€€€€€€')
+23
+>>> ser.write('}©€€€€€€')
+23
+>>> ser.write('}¡€€€€€€')
+23
+>>> ser.inWaiting()ser.inWaiting()
+SyntaxError: invalid syntax
+>>> ser.inWaiting()
+0
+>>> ser.getDSR()
+False
+>>> ser.getCTS()
+False
+>>> ser.getRI()
+False
+>>> ser.getCD()
+False
+>>> ser.setDTR()
+>>> ser.gerDSR()
+
+Traceback (most recent call last):
+  File "<pyshell#24>", line 1, in <module>
+    ser.gerDSR()
+AttributeError: 'Serial' object has no attribute 'gerDSR'
+>>> ser.getDSR()
+False
+>>> ser.nonblocking()
+>>> ser.getDSR()
+False
+>>> ser.write('}¢€€€€€€')
+23
+>>> ser.write('} €€€€€€')
+22
+>>> ser.close)
+SyntaxError: invalid syntax
+>>> ser.close()
+>>> 
