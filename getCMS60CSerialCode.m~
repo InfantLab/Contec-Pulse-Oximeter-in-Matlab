@@ -1,5 +1,0 @@
-function [returnString returnU256int] = getCMS60CSerialCode(command)
-
-
-select case
-hex2dec('7D')

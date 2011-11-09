@@ -1,92 +1,189 @@
-function ret = HeartRateUSB ()
+function ret = HeartRateUSB(command)
 %
 % Attempting to talk to the contec.com.cn CMS60C Pulse Oximeter over USB.
 % Caspar Addyman Oct 2011
+%
+% CMS60C Communication Protocol in the pdf file in this folder.
+% ./Communication protocol of pulse oximeter V7.0.pdf
 %
 % Note: You must first have installed the SiLabs
 % USB to UART Bridge Virtual Comm Port (VCP) Drivers
 %
 % http://www.silabs.com/products/mcu/Pages/USBtoUARTBridgeVCPDrivers.aspx
 %
-% Communication Protocol in the pdf file in this folder.
+% and PsychoToolBox in order to use the IOPORT function
+%  
+% http://psychtoolbox.org/HomePage
+% http://docs.psychtoolbox.org/IOPort
+%
+% v0.1  - alpha version - just about works ( 
 
-port='/dev/cu.SLAB_USBtoUART';
+global ioPortOpen;
+global monitorIO;
+global PCtoMonitorBytes;
+global port;
 
-% Data Format: 1 Start bit + 8 data bits + 1 stop bit, odd;
-% Baud Rate: 115200
+    port='/dev/cu.SLAB_USBtoUART';
 
-% Data from PC to Pulse Oximeter
-% DATA:5 bytes in 1 package,60 packages/second,bit 7 stand for synchronization?
-% See PDF for details.
+    if (nargin < 1)
+        command = 'livedata';
+    end
 
-PCtoMonitorBytes(1) = uint8(bin2dec('01111101')); % = hex2dec('7D'); //start command
-PCtoMonitorBytes(2) = uint8(bin2dec('10000001')); % = hex2dec('81'); 
-PCtoMonitorBytes(3) = uint8(bin2dec('10100001')); % = hex2dec('A1'); //ask for real time data
-PCtoMonitorBytes(4) = uint8(bin2dec('10000000')); % = hex2dec('80'); 
-PCtoMonitorBytes(5) = uint8(bin2dec('10000000')); % = hex2dec('80');
-PCtoMonitorBytes(6) = uint8(bin2dec('10000000')); % = hex2dec('80');
-PCtoMonitorBytes(7) = uint8(bin2dec('10000000')); % = hex2dec('80');
-PCtoMonitorBytes(8) = uint8(bin2dec('10000000')); % = hex2dec('80');
-blocking = 0;
- 
-configString = 'ReceiverEnable=1 BaudRate=115200 StartBits=1 DataBits=8 StopBits=1 Parity=No OutputBufferSize=1024 InputBufferSize=512 RTS=0 DTR=1';
-
-
- 
-
-[handle, errmsg] = IOPort('OpenSerialPort', port, configString);
-if handle < 0
-     error('Error-connecting to heartrate monitor over virtual comm port -- not found...this feature will be disabled');
+    switch lower (command)
+        case 'connect'
+            ret = connect();
+        case 'livedata'
+            ret = livedata();
+        case 'flush'
+            %clear queued data
+            %not implemented yet
+        otherwise
+            connect();
+            ret = livedata();       
+    end
 end
 
-IOPort('Purge', handle); %clear existing data queues.
+function stayconnected()
+%need to send stillconnected command at least once every 5 seconds
+%can send it more often  
+    
+global lastConnected    
+global ioPortOpen
+global monitorIO
 
+    if isempty(ioPortOpen) || isempty(lastConnected)
+        disp('stay connected - reconnect');
+        connect();
+    end
+    
+    if toc(lastConnected) < now - 3
+        %inform device we are connected 
+        [cmdstr cmdarray] = CMS60CInputCommand('connected');
+        [nwritten, when, errmsg, prewritetime, postwritetime, lastchecktime] = IOPort('Write', monitorIO, cmdarray);
+        lastConnected = tic;
+    end
+end
 
-[nwritten, when, errmsg, prewritetime, postwritetime, lastchecktime] = IOPort('Write', handle, PCtoMonitorBytes, blocking)
-navailable = IOPort('BytesAvailable', handle)
-IOPort('Flush', handle);
-[data, when, errmsg] = IOPort('Read', handle );
- 
-PCtoMonitorBytes(1) = uint8(bin2dec('01111101')); % = hex2dec('7D'); //start command
-PCtoMonitorBytes(3) = uint8(bin2dec('10101111')); % = hex2dec('AF'); //inform device we are connected
+function ret = livedata()    
+% return livedata (this can build up in queue if request not made often enough)
 
-[nwritten, when, errmsg, prewritetime, postwritetime, lastchecktime] = IOPort('Write', handle, PCtoMonitorBytes, blocking)
+global ioPortOpen
+global monitorIO
 
+    stayconnected();
+    [data, when, errmsg] = IOPort('Read', monitorIO);    
 
-navailable = IOPort('BytesAvailable', handle)
-[data, when, errmsg] = IOPort('Read', handle )
+    ALLPULSEDATA = [];
+    NData = length(data);
+    datablockindices = find(data==1);
+    NBlocks = length(datablockindices);
+    for j = 1:NBlocks
+        % DATA:8 bytes in 1 package, ~60 packages/second
+        if datablockindices(j)+8 <= NData
+            packet = data(datablockindices(j)+1:datablockindices(j)+8);
+            [PulseObj PulseArray] = CMS60CRealTimeDataDecode(packet);
+            ALLPULSEDATA = [ ALLPULSEDATA ; PulseArray];
+        end
+    end
+    ret = ALLPULSEDATA;
+    return;
+end
 
-
-ret = false;
-IOPort('CloseAll');
-return;
-
-% Data Format: 1 Start bit + 8 data bits + 1 stop bit, odd;
-% Baud Rate: 115200
 % 
-% s = serial(port); % Create serial port object s
-% set(s,'Tag', 'CMS60C');
-% set(s,'BaudRate',115200);
-% set(s,'Parity', 'odd');
-% set(s,'DataBits', 8);
-% set(s,'StopBits', 1);
-% set(s,'Terminator','LF');
-% set(s,'Timeout', .1);
-% % set(s, 'FlowControl', 'software');
-% set(s, 'FlowControl', 'hardware');
-% fopen(s); %open port
-% get(s)
+% for n = 1:120
+%     WaitSecs(1/60);
+%     if mod(n,60) == 0
+%         [nwritten, when, errmsg, prewritetime, postwritetime, lastchecktime] = IOPort('Write', monitorIO, StillConnected, blocking);
+%     end
+%     navailable = IOPort('BytesAvailable', monitorIO);
+%     [data, when, errmsg] = IOPort('Read', monitorIO);    
+%     NData = length(data);
+%     datablockindices = find(data==1);
+%     NBlocks = length(datablockindices);
 % 
+%     % DATA:8 bytes in 1 package, ~60 packages/second
+%     
 % 
-% 
-% fwrite(s,PCtoMonitorBytes);
-% 
-% if(s.BytesAvailable > 0) 
-%     fread(s, s.BytesAvailable);
+%     for j = 1:NBlocks
+%         if datablockindices(j)+8 <= NData
+%             packet = data(datablockindices(j)+1:datablockindices(j)+8);
+%             [PulseObj PulseArray] = CMS60CRealTimeDataDecode(packet);
+%             ALLPULSEDATA = [ ALLPULSEDATA ; PulseArray];
+%         end
+%     end
 % end
 % 
 % 
-% % x = fscanf(s); % read data into variable x
-% fclose(s) % close port
-% delete(s)
-% clear s
+% ret = ALLPULSEDATA;
+%
+
+
+
+function ret = connect()
+
+global ioPortOpen
+global monitorIO
+global lastConnected
+global port
+
+try
+    IOPort('CloseAll');
+    disp(['**** connecting to CMS60C Heart Rate monitor *****']);
+    disp(['**** on port  -  ' port  '      ****']);
+
+    
+    % Data Format: 1 Start bit + 8 data bits + 1 stop bit, odd;
+    % Baud Rate: 115200
+    configString = 'ReceiverEnable=1 BaudRate=115200 StartBits=1 DataBits=8 StopBits=1 Parity=No OutputBufferSize=512 InputBufferSize=1024 RTS=0 DTR=1';
+    [monitorIO, errmsg] = IOPort('OpenSerialPort', port, configString);
+    if monitorIO < 0
+         error('Error-connecting to heartrate monitor over virtual comm port -- not found...this feature will be disabled');
+    end
+    
+
+    IOPort('Flush', monitorIO); %flush data queued to send to device 
+    IOPort('Purge', monitorIO); %clear existing data queues.
+
+
+
+    %the second sequence command codes sent by the PC software in byte 3
+    %these are sent indiviually and a response read for each one
+    Command{1} = 'stopstore'; % stop sending stored data
+    Command{2} = 'stopreal'; % stop sending real time data
+    Command{3} = 'storeid'; % ask for storage indentifiers
+    Command{4} = 'realtimepi'; % ask for for PI realtime support
+    Command{5} = 'devid'; % ask for device identifiers
+    Command{6} = 'realtime'; % ask for real time data
+
+    
+%         Command(1) = uint8(hex2dec('A7')); % stop sending stored data
+%     Command(2) = uint8(hex2dec('A2')); % stop sending real time data
+%     Command(3) = uint8(hex2dec('A0')); %
+%     Command(4) = uint8(hex2dec('B0')); % ask for storage indentifiers
+%     Command(5) = uint8(hex2dec('AC')); % ask for storage indentifiers
+%     Command(6) = uint8(hex2dec('B3')); % unknown
+%     Command(7) = uint8(hex2dec('A8')); % unknown
+%     Command(8) = uint8(hex2dec('AA')); % ask for device identifiers
+%     Command(9) = uint8(hex2dec('A9')); % unknown
+%     Command(10) = uint8(hex2dec('A1')); % ask for real time data
+
+    %send these commands individually
+    for i  = 1:6
+        [cmdstr cmdarray] = CMS60CInputCommand(Command{i});
+        disp(['*** startup command: ' cmdstr]);
+        [nwritten, when, errmsg, prewritetime, postwritetime, lastchecktime] = IOPort('Write', monitorIO, cmdarray);
+        WaitSecs(0.05);
+        navailable = IOPort('BytesAvailable', monitorIO);
+        [data, when, errmsg] = IOPort('Read', monitorIO);
+        disp(['returns ' num2str(data)]);
+    end
+    ioPortOpen = true;
+    lastConnected = tic;
+    ret = true;
+catch
+    ioPortOpen = [];
+    lastConnected = [];
+    IOPort('CloseAll');
+    ret = false;
+end
+end
