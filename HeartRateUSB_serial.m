@@ -1,4 +1,4 @@
-function ret = HeartRateUSB(command)
+function ret = HeartRateUSB_serial(command)
 %
 % Attempting to talk to the contec.com.cn CMS60C Pulse Oximeter over USB.
 % Caspar Addyman Oct 2011
@@ -18,8 +18,8 @@ function ret = HeartRateUSB(command)
 %
 % v0.1  - alpha version - just about works (8/11/2011) 
 
-global ioPortOpen;
-global monitorIO;
+global serialPortOpen;
+global serialObj;
 global PCtoMonitorBytes;
 global port;
 
@@ -50,10 +50,10 @@ function stayconnected()
 %can send it more often  
     
 global lastConnected    
-global ioPortOpen
-global monitorIO
+global serialPortOpen
+global serialObj
 
-    if isempty(ioPortOpen) || isempty(lastConnected)
+    if isempty(serialPortOpen) || isempty(lastConnected)
         disp('stay connected - reconnect');
         connect();
     end
@@ -61,7 +61,8 @@ global monitorIO
     if toc(lastConnected) < now - 3
         %inform device we are connected 
         [cmdstr cmdarray] = CMS60CInputCommand('connected');
-        [nwritten, when, errmsg, prewritetime, postwritetime, lastchecktime] = IOPort('Write', monitorIO, cmdarray);
+       %  [nwritten, when, errmsg, prewritetime, postwritetime, lastchecktime] = IOPort('Write', monitorIO, cmdarray);
+        fwrite(serialObj ,cmdarray);
         lastConnected = tic;
     end
 end
@@ -69,11 +70,12 @@ end
 function ret = livedata()    
 % return livedata (this can build up in queue if request not made often enough)
 
-global ioPortOpen
-global monitorIO
+global serialPortOpen
+global serialObj
 
     stayconnected();
-    [data, when, errmsg] = IOPort('Read', monitorIO);    
+    %[data, when, errmsg] = IOPort('Read', monitorIO);
+    data = fread(serialObj, serialObj.BytesAvailable);
 
     ALLPULSEDATA = [];
     NData = length(data);
@@ -91,62 +93,44 @@ global monitorIO
     return;
 end
 
-% 
-% for n = 1:120
-%     WaitSecs(1/60);
-%     if mod(n,60) == 0
-%         [nwritten, when, errmsg, prewritetime, postwritetime, lastchecktime] = IOPort('Write', monitorIO, StillConnected, blocking);
-%     end
-%     navailable = IOPort('BytesAvailable', monitorIO);
-%     [data, when, errmsg] = IOPort('Read', monitorIO);    
-%     NData = length(data);
-%     datablockindices = find(data==1);
-%     NBlocks = length(datablockindices);
-% 
-%     % DATA:8 bytes in 1 package, ~60 packages/second
-%     
-% 
-%     for j = 1:NBlocks
-%         if datablockindices(j)+8 <= NData
-%             packet = data(datablockindices(j)+1:datablockindices(j)+8);
-%             [PulseObj PulseArray] = CMS60CRealTimeDataDecode(packet);
-%             ALLPULSEDATA = [ ALLPULSEDATA ; PulseArray];
-%         end
-%     end
-% end
-% 
-% 
-% ret = ALLPULSEDATA;
-%
-
-
 
 function ret = connect()
 
-global ioPortOpen
-global monitorIO
+global serialPortOpen
+global serialObj
 global lastConnected
 global port
 
 try
-    IOPort('CloseAll');
     disp(['**** connecting to CMS60C Heart Rate monitor *****']);
     disp(['**** on port  -  ' port  '      ****']);
 
-    
+    port='/dev/tty.SLAB_USBtoUART';
+
+    % Create a serial port object.
+    serialObj = instrfind('Type', 'serial', 'Port', port, 'Tag', '');
+
+    % Create the serial port object if it does not exist
+    % otherwise use the object that was found.
+    if isempty(serialObj)
+        serialObj = serial(port, 'BaudRate',115200);
+    else
+        fclose(serialObj);
+        serialObj = serialObj(1);
+    end
     % Data Format: 1 Start bit + 8 data bits + 1 stop bit, odd;
     % Baud Rate: 115200
-    configString = 'ReceiverEnable=1 BaudRate=115200 StartBits=1 DataBits=8 StopBits=1 Parity=No OutputBufferSize=512 InputBufferSize=1024 RTS=0 DTR=1';
-    [monitorIO, errmsg] = IOPort('OpenSerialPort', port, configString);
-    if monitorIO < 0
+    set(serialObj,'DataBits',8,'StopBits',1,'Parity','none');
+    set(serialObj,'OutputBufferSize',512,'InputBufferSize',1024,'RequestToSend','off','DataTerminalReady','on');
+    fopen(serialObj);
+    if ~strcmpi(serialObj.Status, 'open')
          error('Error-connecting to heartrate monitor over virtual comm port -- not found...this feature will be disabled');
     end
     
-
-    IOPort('Flush', monitorIO); %flush data queued to send to device 
-    IOPort('Purge', monitorIO); %clear existing data queues.
-
-
+    if(serialObj.BytesAvailable > 0) %clear out buffer
+        null = fread(serialObj, serialObj.BytesAvailable);
+    end
+    
 
     %the second sequence command codes sent by the PC software in byte 3
     %these are sent indiviually and a response read for each one
@@ -158,38 +142,35 @@ try
     Command{6} = 'realtime'; % ask for real time data
 
     
-%         Command(1) = uint8(hex2dec('A7')); % stop sending stored data
-%     Command(2) = uint8(hex2dec('A2')); % stop sending real time data
-%     Command(3) = uint8(hex2dec('A0')); %
-%     Command(4) = uint8(hex2dec('B0')); % ask for storage indentifiers
-%     Command(5) = uint8(hex2dec('AC')); % ask for storage indentifiers
-%     Command(6) = uint8(hex2dec('B3')); % unknown
-%     Command(7) = uint8(hex2dec('A8')); % unknown
-%     Command(8) = uint8(hex2dec('AA')); % ask for device identifiers
-%     Command(9) = uint8(hex2dec('A9')); % unknown
-%     Command(10) = uint8(hex2dec('A1')); % ask for real time data
-
     %send these commands individually
     for i  = 1:6
         [cmdstr cmdarray] = CMS60CInputCommand(Command{i});
         disp(['*** startup command: ' cmdstr]);
-        [nwritten, when, errmsg, prewritetime, postwritetime, lastchecktime] = IOPort('Write', monitorIO, cmdarray);
+%         [nwritten, when, errmsg, prewritetime, postwritetime, lastchecktime] = IOPort('Write', monitorIO, cmdarray);
+        fwrite(serialObj ,cmdarray);
         WaitSecs(0.05);
-        navailable = IOPort('BytesAvailable', monitorIO);
-        [data, when, errmsg] = IOPort('Read', monitorIO);
-        disp(['returns ' num2str(data)]);
+        navailable = serialObj.BytesAvailable;
+        data = fread(serialObj, serialObj.BytesAvailable);
+        disp('returns ');
+        disp(num2str(data'));
     end
-    ioPortOpen = true;
+    serialPortOpen = true;
     lastConnected = tic;
     ret = true;
-catch
-    ioPortOpen = [];
+catch exception
+    disp('failed to connect ')
+    disp(exception.message)
+    serialPortOpen = [];
     lastConnected = [];
-    IOPort('CloseAll');
+    fclose(serialObj);
     ret = false;
 end
 end
 
 function close()
-    IOPort('CloseAll');
+global serialObj
+    % Disconnect from instrument object, obj1.
+    fclose(serialObj);
+    % Clean up all objects.
+    delete(serialObj);
 end

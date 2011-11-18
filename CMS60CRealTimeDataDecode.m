@@ -37,6 +37,8 @@ RealTimeData.PIInvalid        = bitand(DataPackage(4), 16) == 16;  % bit 4
 RealTimeData.PulseRate         = bitand(DataPackage(5), 255);  % bits 0-7
 if RealTimeData.PulseRate > 254 % only valid upto 254
     RealTimeData.PulseRate = -1;
+elseif RealTimeData.PulseRate > 196 %kludge for weird CMS60S data
+    RealTimeData.PulseRate = RealTimeData.PulseRate - 128;
 end
 
 %Byte 6 - SPO2
