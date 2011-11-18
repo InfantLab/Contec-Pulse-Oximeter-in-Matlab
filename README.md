@@ -1,4 +1,4 @@
-This is a small help file explaining how to get started using the Contec CMS60C to capture real time heart rate and pulse oximetry data into Matlab.
+This is a small help file explaining how to get started using the Contec CMS60C (http://contecmed.com/) to capture real time heart rate and pulse oximetry data into Matlab.
 
 Any questions, please contact 
 Caspar Addyman <c.addyman@bbk.ac.uk>
