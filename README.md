@@ -8,12 +8,12 @@ Requirements:
 =============
 
 This code should run in any version of Matlab >R2007 
-It should also work in Octave (> but this hasn't been verified
+It should also work in Octave >v3.1 but this hasn't been verified
 
 Matlab ( >R2007)
 http://www.mathworks.co.uk/
 
-Octave ( > v3.1)
+Octave ( >v3.1)
 http://www.gnu.org/software/octave/
 
 Optional:
