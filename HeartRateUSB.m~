@@ -1,3 +1,4 @@
+
 function ret = HeartRateUSB(command)
 %
 % Attempting to talk to the contec.com.cn CMS60C Pulse Oximeter over USB.
