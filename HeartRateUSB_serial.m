@@ -161,7 +161,7 @@ catch exception
     disp('failed to connect ')
     disp(exception.message)
     serialPortOpen = [];
-    lastConnected = [];
+    lastConnected = tic - 20;
     fclose(serialObj);
     ret = false;
 end
