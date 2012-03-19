@@ -20,14 +20,21 @@ Optional:
 =========
 
 PsychToolbox version 3.0 
-http://www.psychtoolbox.org/
-                      
+http://www.psychtoolbox.org/                      
+
+
+Installation:
+=============
+
+Download the contents of this directory, unzip and install the Mac OSX VCP Driver.zip. The heartrate data is collected by calling the HeartRateUSB.m or the HeartRateUSB_serial.m script. (They are essentially identical but the former uses PsychToolBox IOPort function while the latter uses standard matlab serial commands.)
+
 
 
 This code is open source and freely available for you to use in your own projects. 
 
 
 Any questions, bugs or comments, please post them on github.com or email them to c.addyman@bbk.ac.uk
+
 
 
 
