@@ -185,7 +185,7 @@ try
 catch exception
     disp(exception.message);
     ioPortOpen = [];
-    lastConnected = tic -20;
+    lastConnected = uint64(0);
     IOPort('CloseAll');
     ret = false;
 end

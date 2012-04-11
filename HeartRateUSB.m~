@@ -1,4 +1,3 @@
-
 function ret = HeartRateUSB(command)
 %
 % Attempting to talk to the contec.com.cn CMS60C Pulse Oximeter over USB.
@@ -186,7 +185,7 @@ try
 catch exception
     disp(exception.message);
     ioPortOpen = [];
-    lastConnected = tic -20;
+    lastConnected = tic - 20;
     IOPort('CloseAll');
     ret = false;
 end
