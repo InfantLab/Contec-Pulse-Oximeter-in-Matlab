@@ -135,7 +135,10 @@ try
 
     
     % Data Format: 1 Start bit + 8 data bits + 1 stop bit, odd;
-    % Baud Rate: 115200
+% NOTE DIFFERENT CMS Models use different baud rates you may have to edit the following lines
+ %   % Baud Rate: 19200  (CMS50D)
+ %   configString = 'ReceiverEnable=1 BaudRate=19200 StartBits=1 DataBits=8 StopBits=1 Parity=No OutputBufferSize=512 InputBufferSize=1024 RTS=0 DTR=1';
+    % Baud Rate: 115200  (CMS60C)
     configString = 'ReceiverEnable=1 BaudRate=115200 StartBits=1 DataBits=8 StopBits=1 Parity=No OutputBufferSize=512 InputBufferSize=1024 RTS=0 DTR=1';
     [monitorIO, errmsg] = IOPort('OpenSerialPort', port, configString);
     if monitorIO < 0
