@@ -113,7 +113,9 @@ try
     % Create the serial port object if it does not exist
     % otherwise use the object that was found.
     if isempty(serialObj)
-        serialObj = serial(port, 'BaudRate',115200);
+        %Note that different CMS models connect at different baud rates. You may need to edit the following lines
+        serialObj = serial(port, 'BaudRate',115200);  % CMS60C
+        % serialObj = serial(port, 'BaudRate',19200); % CMS50D
     else
         fclose(serialObj);
         serialObj = serialObj(1);
