@@ -3,6 +3,21 @@ This is a small help file explaining how to get started using the Contec CMS60C 
 Any questions, please contact 
 Caspar Addyman <c.addyman@bbk.ac.uk>
 
+Model number
+============
+
+Be aware that different models in the CMS range run at different baud rates:
+- CMS60C  runs on a 115200 baud rate, parity no
+- CMS50D+ runs on a 19200 baud rate, parity No.
+
+
+You will need to comment in/out the appropriate lines in the connection script.
+Either 
+configString on line 142 of HeartRateUSB.m
+or
+serialObj on Line 117 ins HeartRateUSB_serial.m 
+
+
 
 Requirements:
 =============
@@ -36,7 +51,16 @@ This code is open source and freely available for you to use in your own project
 Any questions, bugs or comments, please post them on github.com or email them to c.addyman@bbk.ac.uk
 
 
+Alternatives
+============
 
+Ian Hands has written a java/SWT app for reading CMS Pulse Oximeters
+
+Info here
+http://ian.ahands.org/progs/pulseox/ 
+
+Code here
+https://github.com/iphands/PulseOx
 
 
 
