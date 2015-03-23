@@ -50,7 +50,11 @@ This code is open source and freely available for you to use in your own project
 
 Any questions, bugs or comments, please post them on github.com or email them to c.addyman@bbk.ac.uk
 
+
 [![DOI](https://zenodo.org/badge/3891/YourBrain/Contec-Pulse-Oximeter-in-Matlab.svg)](http://dx.doi.org/10.5281/zenodo.16277)
+
+
+*This work was supported in part by a joint grant from the French ANR (ANR-10-056 GETPIMA), and the UK ESRC (RES-062-23-0819) within the France-UK ORA framework.*
 
 
 Alternatives
