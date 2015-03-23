@@ -50,6 +50,8 @@ This code is open source and freely available for you to use in your own project
 
 Any questions, bugs or comments, please post them on github.com or email them to c.addyman@bbk.ac.uk
 
+[![DOI](https://zenodo.org/badge/3891/YourBrain/Contec-Pulse-Oximeter-in-Matlab.svg)](http://dx.doi.org/10.5281/zenodo.16277)
+
 
 Alternatives
 ============
@@ -61,8 +63,5 @@ http://ian.ahands.org/progs/pulseox/
 
 Code here
 https://github.com/iphands/PulseOx
-
-
-
 
 
