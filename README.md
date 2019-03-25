@@ -8,8 +8,8 @@ Model number
 
 Be aware that different models in the CMS range run at different baud rates:
 - CMS60C  runs on a 115200 baud rate, parity no
-- CMS50D+ runs on a 19200 baud rate, parity No.
-
+- CMS50D+ (older) runs on a 19200 baud rate, parity No.
+- CMS50d+ (newer) runs on a 115200 baud rate, parity No.
 
 You will need to comment in/out the appropriate lines in the connection script.
 Either 
